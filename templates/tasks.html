@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Tasks</title>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .task-card {
+            background: #111; border: 1px solid #333; border-radius: 8px;
+            padding: 20px; margin: 10px; width: 350px;
+        }
+        .label { color: #888; font-size: 0.8rem; text-transform: uppercase; }
+        .value { color: #fff; margin-bottom: 10px; display: block; }
+        .desc-box { background: #1a1a1a; padding: 10px; border-left: 3px solid #fff; margin-top: 10px; }
+        hr { border: 0; border-top: 1px solid #222; margin: 10px 0; }
+
+        /* Yeni əlavə edilən düymə stili */
+        .home-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 30px;
+            background: #fff;
+            color: #000;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+        .home-btn:hover {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h2>My Task List</h2>
+
+    {% for task in tasks_list %}
+    <div class="task-card">
+        <span class="label">Tasks:</span>
+        <span class="value">{{ task['Tasks'] }}</span>
+
+        <span class="label">Task Progress:</span>
+        <span class="value">{{ task['Progess'] }}</span>
+
+        <span class="label">Time:</span>
+        <span class="value">{{ task['Time'] }}</span>
+
+        <div class="desc-box">
+            <span class="label">Description:</span>
+            <p style="margin: 5px 0 0 0;">{{ task['Description'] }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not tasks_list %}
+        <p>No Tasks.</p>
+    {% endif %}
+
+    <!-- Əsas səhifəyə yönləndirən düymə -->
+    <a href="/home" class="home-btn">Home</a>
+
+</body>
+</html>

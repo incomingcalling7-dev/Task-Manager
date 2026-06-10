@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-black: #000000;
+            --secondary-gray: #64748b;
+            --bg: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--primary-black);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 0 40px 0;
+            letter-spacing: -1px;
+        }
+
+        /* Form Layout */
+        form {
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--secondary-gray);
+        }
+
+        input {
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-black);
+        }
+
+        /* Black Button Style */
+        .btn {
+            padding: 12px;
+            border-radius: 6px;
+            background: var(--primary-black);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: background 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #333333;
+        }
+
+        /* Bottom Link */
+        .footer-link {
+            margin-top: 25px;
+            text-decoration: none;
+            color: var(--secondary-gray);
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-black);
+            text-decoration: underline;
+        }
+
+        .message {
+            font-size: 14px;
+            color: #ef4444; /* Error red */
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Login</h1>
+
+    <form action="/Locatorone" method="POST">
+        <div class="form-group">
+            <label for="Player_Name">Name</label>
+            <input type="text" id="Player_Name" name="Player_Name" placeholder="Enter your name" required autofocus>
+        </div>
+
+        <div class="form-group">
+            <label for="Task_ID">Task ID</label>
+            <input type="password" id="Task_ID" name="Task_ID" placeholder="Enter ID" required>
+        </div>
+
+        <button type="submit" class="btn">Login</button>
+
+        {% if message %}
+        <span class="message">{{ message }}</span>
+        {% endif %}
+    </form>
+
+    <a href="/" class="footer-link">
+        I don't have an account
+    </a>
+
+</body>
+</html>

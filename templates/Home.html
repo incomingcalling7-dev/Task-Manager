@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-black: #000000;
+            --secondary-gray: #64748b;
+            --bg: #ffffff;
+            --hover-gray: #333333;
+            --error-red: #ef4444;
+        }
+
+        /* Kopyalama düyməsi üçün stillər */
+        .copy-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .copy-btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--secondary-gray);
+        }
+
+        .top-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: transparent;
+            color: var(--primary-black);
+            border: 1px solid var(--primary-black);
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--primary-black);
+            color: white;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--primary-black);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        small {
+            color: var(--secondary-gray);
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 0 40px 0;
+            letter-spacing: -1px;
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 6px;
+            background: var(--primary-black);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--hover-gray);
+        }
+
+        #modal-toggle, #edit-modal-toggle { display: none; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.98);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        #modal-toggle:checked ~ #create-modal,
+        #edit-modal-toggle:checked ~ #edit-modal {
+            display: flex;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .task-input {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            color: var(--secondary-gray);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin-top: 20px;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <a href="/loginout" class="logout-btn">Logout</a>
+    </div>
+
+    <input type="checkbox" id="modal-toggle">
+    <input type="checkbox" id="edit-modal-toggle">
+
+    <!-- Task ID və Kopyala Düyməsi -->
+    <div class="copy-container">
+        <small id="task-id-text">Task ID: {{ kod }}</small>
+        <button class="copy-btn" onclick="copyToClipboard()" title="Kopyala">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+            </svg>
+        </button>
+    </div>
+
+    <h1>Task Manager</h1>
+
+    <nav>
+        <a href="/Tasks" class="btn">View Tasks</a>
+        <label for="modal-toggle" class="btn">Create New</label>
+        <label for="edit-modal-toggle" class="btn">Edit Task</label>
+    </nav>
+
+    <!-- Modallar olduğu kimi qalır... -->
+    <div class="modal" id="create-modal">
+        <div class="modal-content">
+            <h2>New Task</h2>
+            <form action="/add_file" method="POST">
+                <input type="text" name="task_content" class="task-input" placeholder="Task Name..." required>
+                <input type="text" name="Time" class="task-input" placeholder="Time (e.g. 14:00)..." required>
+                <input type="text" name="Description" class="task-input" placeholder="Description..." required>
+                <button type="submit" class="btn" style="width: 100%;">Add Task</button>
+            </form>
+            <label for="modal-toggle" class="close-btn">Close</label>
+        </div>
+    </div>
+
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <h2>Edit Task</h2>
+            <form action="/edit_task" method="POST">
+                <small>Identify the task by its name:</small>
+                <input type="text" name="old_task_name" class="task-input" placeholder="Current Task Name..." required>
+                <hr>
+                <small>Enter updated details:</small>
+                <input type="text" name="new_name" class="task-input" placeholder="New Task Name..." required>
+                <input type="text" name="Description" class="task-input" placeholder="New Description..." required>
+                <button type="submit" class="btn" style="width: 100%;">Update Task</button>
+            </form>
+            <label for="edit-modal-toggle" class="close-btn">Close</label>
+        </div>
+    </div>
+
+    <!-- Kopyalama funksiyası üçün JS -->
+    <script>
+        function copyToClipboard() {
+            // ID-ni götürürük (sadəcə dəyəri, "Task ID:" yazısını yox)
+            const idValue = "{{ kod }}";
+
+            // Müasir clipboard API-ni istifadə edirik
+            navigator.clipboard.writeText(idValue).then(() => {
+                alert("ID kopyalandı: " + idValue);
+            }).catch(err => {
+                console.error('Kopyalama xətası: ', err);
+            });
+        }
+    </script>
+
+</body>
+</html>
