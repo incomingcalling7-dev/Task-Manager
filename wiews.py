@@ -8,7 +8,10 @@ from flask import Flask, render_template, request, redirect, url_for, session
 app = Flask(__name__)
 # Veb serverdə sessiyaların təhlükəsizliyi üçün gizli açar
 app.secret_key = os.urandom(24)
-db_name = "database.db"
+
+# Render serverində fayl yazma xətası olmasın deyə bazanın tam yolunu təyin edirik
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_name = os.path.join(BASE_DIR, "database.db")
 
 def init_db():
     """Bütün istifadəçilər və tapşırıqlar üçün vahid bazanı qurur"""
@@ -27,6 +30,9 @@ def init_db():
                          time TEXT, 
                          description TEXT)''')
         conn.commit()
+
+# Server işə düşən kimi bazanın yaranmasını təmin edirik
+init_db()
 
 def background_timer(task_name, user_code, wait_hours):
     """Arxa planda vaxtı sayır və statusu yeniləyir"""
@@ -66,8 +72,9 @@ def Locator():
 
         session['user_code'] = user_code
         return redirect(url_for('home'))
-    except Exception:
-        return render_template("Register.html", message="Qeydiyyat zamanı xəta baş verdi.")
+    except Exception as e:
+        # Xətanın tam olaraq nə olduğunu anlamaq üçün mesajı ekrana ötürürük
+        return render_template("Register.html", message=f"Qeydiyyat xətası: {str(e)}")
 
 @app.route("/Locatorone", methods=['POST'])
 def locatoroe():
@@ -86,8 +93,8 @@ def locatoroe():
             return redirect(url_for('home'))
         else:
             return render_template("Login.html", message="Kod və ya ad səhvdir.")
-    except Exception:
-        return render_template("Login.html", message="Giriş zamanı xəta.")
+    except Exception as e:
+        return render_template("Login.html", message=f"Giriş xətası: {str(e)}")
 
 @app.route("/home")
 def home():
@@ -111,7 +118,6 @@ def add_task():
                         (user_code, task, "In Progress", time_val, description))
             con.commit()
 
-        # Thread sistemi kiçik layihələr üçün işləyir, server yükləndikdə Celery məsləhətdir
         thread = threading.Thread(target=background_timer, args=(task, user_code, time_val))
         thread.start()
 
@@ -129,7 +135,6 @@ def Tasks():
     with sql.connect(db_name) as con:
         con.row_factory = sql.Row
         cur = con.cursor()
-        # Yalnız daxil olan istifadəçinin öz tapşırıqlarını seçirik
         cur.execute("SELECT tasks, progress, time, description FROM tasks WHERE user_code=?", (user_code,))
         rows = cur.fetchall()
 
@@ -155,5 +160,4 @@ def disconnect():
     return redirect(url_for("login_sc"))
 
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
