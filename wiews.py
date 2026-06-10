@@ -1,70 +1,73 @@
-import webview
 import sqlite3 as sql
 import random
-import time
+import os
 import threading
+import time
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "12345"
-db_name = "Profile.db"
+# Veb serverdə sessiyaların təhlükəsizliyi üçün gizli açar
+app.secret_key = os.urandom(24)
+db_name = "database.db"
 
-
-def oppen_db():
+def init_db():
+    """Bütün istifadəçilər və tapşırıqlar üçün vahid bazanı qurur"""
     with sql.connect(db_name) as conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS users 
                         (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                          name TEXT, 
                          age INTEGER, 
                          user_code TEXT UNIQUE)''')
+        
+        conn.execute('''CREATE TABLE IF NOT EXISTS tasks 
+                        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                         user_code TEXT, 
+                         tasks TEXT, 
+                         progress TEXT, 
+                         time TEXT, 
+                         description TEXT)''')
+        conn.commit()
 
-
-def background_timer(user_db, task_name, wait_hours):
+def background_timer(task_name, user_code, wait_hours):
+    """Arxa planda vaxtı sayır və statusu yeniləyir"""
     try:
         wait_seconds = float(wait_hours) * 3600
         time.sleep(wait_seconds)
-        with sql.connect(user_db) as con:
-            con.execute("UPDATE tasks SET Progess=? WHERE Tasks=?", ("Done", task_name))
+        with sql.connect(db_name) as con:
+            con.execute("UPDATE tasks SET progress=? WHERE tasks=? AND user_code=?", 
+                        ("Done", task_name, user_code))
             con.commit()
-    except Exception as e:
-            pass
-
+    except Exception:
+        pass
 
 @app.route("/")
 def signup_sc():
     return render_template("Register.html")
+
 @app.route("/login")
 def login_sc():
     return render_template("Login.html")
+
 @app.route("/locator", methods=['POST'])
 def Locator():
-    name = request.form.get("Name").strip().lower()
-    age = request.form.get("age")
+    name = request.form.get("Name", "").strip().lower()
+    age = request.form.get("age", "").strip()
 
-    if not age or not age.isdigit():
-        return render_template("Register.html", message="Please enter a valid age.")
+    if not name or not age or not age.isdigit():
+        return render_template("Register.html", message="Zəhmət olmasa düzgün ad və yaş daxil edin.")
 
-    user_code = f"{name}_{age}_{random.randint(1, 100000)}"
+    user_code = f"{name}_{age}_{random.randint(1000, 9999)}"
 
     try:
         with sql.connect(db_name) as conn:
-            cur = conn.cursor()
-            cur.execute("INSERT INTO users (name, age, user_code) VALUES (?, ?, ?)",
+            conn.execute("INSERT INTO users (name, age, user_code) VALUES (?, ?, ?)",
                         (name, age, user_code))
             conn.commit()
-
-        with sql.connect(f"{user_code}.db") as con:
-            con.execute('''CREATE TABLE IF NOT EXISTS tasks 
-                            (Tasks TEXT, 
-                             Progess TEXT, 
-                             Time TEXT, 
-                             Description TEXT)''')
-            con.commit()
 
         session['user_code'] = user_code
         return redirect(url_for('home'))
     except Exception:
-        return render_template("Register.html", message="Xəta baş verdi.")
+        return render_template("Register.html", message="Qeydiyyat zamanı xəta baş verdi.")
 
 @app.route("/Locatorone", methods=['POST'])
 def locatoroe():
@@ -72,28 +75,25 @@ def locatoroe():
     name = request.form.get("Player_Name", "").strip().lower()
 
     try:
-        conn = sql.connect(db_name)
-        conn.row_factory = sql.Row
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE user_code = ? AND name = ?", (task_id, name))
-        user1 = cur.fetchone()
+        with sql.connect(db_name) as conn:
+            conn.row_factory = sql.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM users WHERE user_code = ? AND name = ?", (task_id, name))
+            user = cur.fetchone()
 
-        if user1:
+        if user:
             session['user_code'] = task_id
             return redirect(url_for('home'))
         else:
             return render_template("Login.html", message="Kod və ya ad səhvdir.")
     except Exception:
         return render_template("Login.html", message="Giriş zamanı xəta.")
-    finally:
-        conn.close()
 
 @app.route("/home")
 def home():
     if 'user_code' in session:
         return render_template("Home.html", kod=session['user_code'])
     return redirect(url_for('login_sc'))
-
 
 @app.route("/add_file", methods=['POST'])
 def add_task():
@@ -104,14 +104,15 @@ def add_task():
     task = request.form.get("task_content")
     time_val = request.form.get("Time")
     description = request.form.get("Description")
-    user_db = f"{user_code}.db"
+
     try:
-        with sql.connect(user_db) as con:
-            con.execute("INSERT INTO tasks (Tasks, Progess, Time, Description) VALUES (?, ?, ?, ?)",
-                        (task, "In Progress", time_val, description))
+        with sql.connect(db_name) as con:
+            con.execute("INSERT INTO tasks (user_code, tasks, progress, time, description) VALUES (?, ?, ?, ?, ?)",
+                        (user_code, task, "In Progress", time_val, description))
             con.commit()
 
-        thread = threading.Thread(target=background_timer, args=(user_db, task, time_val))
+        # Thread sistemi kiçik layihələr üçün işləyir, server yükləndikdə Celery məsləhətdir
+        thread = threading.Thread(target=background_timer, args=(task, user_code, time_val))
         thread.start()
 
     except Exception as e:
@@ -119,43 +120,40 @@ def add_task():
 
     return redirect(url_for('home'))
 
-
 @app.route("/Tasks")
 def Tasks():
     if 'user_code' not in session:
         return redirect(url_for('login_sc'))
 
     user_code = session['user_code']
-    with sql.connect(f"{user_code}.db") as con:
+    with sql.connect(db_name) as con:
         con.row_factory = sql.Row
         cur = con.cursor()
-        cur.execute("SELECT Tasks, Progess, Time, Description FROM tasks")
+        # Yalnız daxil olan istifadəçinin öz tapşırıqlarını seçirik
+        cur.execute("SELECT tasks, progress, time, description FROM tasks WHERE user_code=?", (user_code,))
         rows = cur.fetchall()
 
     return render_template("tasks.html", tasks_list=rows)
 
-
 @app.route("/edit_task", methods=['POST'])
 def edit_task():
     if 'user_code' in session:
+        user_code = session['user_code']
         old_name = request.form.get("old_task_name")
         new_name = request.form.get("new_name")
         description = request.form.get("Description")
-        user_db = f"{session['user_code']}.db"
 
-        with sql.connect(user_db) as con:
-            con.execute("UPDATE tasks SET Tasks=?, Description=? WHERE Tasks=?",
-                        (new_name, description, old_name))
+        with sql.connect(db_name) as con:
+            con.execute("UPDATE tasks SET tasks=?, description=? WHERE tasks=? AND user_code=?",
+                        (new_name, description, old_name, user_code))
             con.commit()
     return redirect(url_for("home"))
-
 
 @app.route("/loginout")
 def disconnect():
     session.clear()
     return redirect(url_for("login_sc"))
 
-
 if __name__ == "__main__":
-    oppen_db()
+    init_db()
     app.run(debug=True)
